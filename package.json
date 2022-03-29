@@ -1,0 +1,21 @@
+{
+  "name": "RClone-Checker",
+  "version": "0.0.0",
+  "scripts": {
+    "start": "node index.js",
+    "test": "",
+    "build": "pwd",
+    "git-add": "git add . && git status",
+    "git-commit": "git cz",
+    "git-push": "git push",
+    "git-update": "git checkout master && git pull"
+  },
+  "devDependencies": {
+    "cz-conventional-changelog": "^3.0.1"
+  },
+  "config": {
+    "commitizen": {
+      "path": "../../node_modules/cz-conventional-changelog"
+    }
+  }
+}
