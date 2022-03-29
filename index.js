@@ -7,65 +7,131 @@ debug.log('Imported', package_info.name);
 
 const fs = require('fs');
 // Todo: Add Path Module
-//const path = require('path');
-const execSpawn = require('child_process').spawn;
+const path = require('path');
+const cp = require('child_process');
 
-exports=function (source, mount_dir, config_file, check_file=".checkfile", is_trash=false) {
-  var spawn = execSpawn('rclone', ['mount',source,mount_dir,"--allow-non-empty","--allow-other", "--config",config_file]);
-  spawn.stdout.on('data', function(msg){         
-    debug.log(msg.toString(), package_info.name);
-  });
-  spawn.stdout.on('error', function(msg){         
-    debug.error(msg.toString(), package_info.name);
-    process.exit(1);
-  });
-  spawn.stdout.on('close', function(msg){         
-    debug.log(msg.toString(), package_info.name);
-    process.exit(0);
-  });
-  
-  if (0) {
-    //if (!fs.existsSync(mount_dir)) {
-    //  debug.log('Create Mount Dir: '+mount_dir, package_info.name);
-    //  fs.mkdirSync(mount_dir,{recursive:true});
-    //}
+var link_process=null;
+var trash_process=null;
 
-    if (is_trash) {
-      var spawn = execSpawn('rclone', ['mount',source,mount_dir,"--drive-trashed-only","--allow-non-empty","--allow-other", "--config",config_file]);   
-    } else {
-      var check_path=mount_dir+"/"+check_file;
-      if (!fs.existsSync(check_path)) {
-        debug.log('No Checkfile: '+check_path, package_info.name);
+class RcloneMount {
+  constructor(config, source, mount_dir, check_file=".checkfile") {
+    this.config=config;
+    this.source=source;
+    this.mount_dir=mount_dir;
+    this.setCheckfile(check_file);
+    this.setConfig(config);
 
-        var spawn = execSpawn('rclone', ['mount',source,mount_dir,"--allow-non-empty","--allow-other", "--config",config_file]);     
-        spawn.stdout.on('data', function(msg){         
-          debug.log(msg.toString(), package_info.name);
-        });
-        spawn.stdout.on('error', function(msg){         
-          debug.error(msg.toString(), package_info.name);
-          process.exit(1);
-        });
-        spawn.stdout.on('close', function(msg){         
-          debug.log(msg.toString(), package_info.name);
-          process.exit(0);
-        });
+    this.unmountSource();
 
-        /*
-        setTimeout(() => {
-          const time = new Date();
-          try {
-            fs.utimesSync(check_path, time, time);
-          } catch (err) {
-            fs.closeSync(fs.openSync(check_path, 'w'));
-          }
-        },5000);
-        */
-        exports(source, mount_dir+"_trash",config_file,check_file,true);
-      }
+    setInterval(() => {
+      this.isConnected();
+    },5000);
+  }
+
+  setCheckfile(check_file) {
+    this.check_file=check_file;
+  }
+  setConfig(config) {
+    this.config=config;
+    if (typeof this.config=="undefined" || this.config=="") {
+      debug.error("Config isn't set!", package_info.name);
+      return;
+    }
+    if (!fs.existsSync(this.config)) {
+      debug.error("Config File doenst exists!", package_info.name);
+      return;
     }
   }
+
+  isConnected() {
+    var returnvalue=false;
+    var checkpath=path.join(this.mount_dir, this.check_file);
+    try {
+      if (this.isMountReady()) {
+        if (fs.existsSync(checkpath)) {
+          returnvalue=true;
+        } else {
+          debug.error("Can't Find Checkfile: "+checkpath, package_info.name);
+        }
+      }
+    }
+    catch(e) {
+      debug.error(e, package_info.name);
+    }
+    return returnvalue;
+  }
+
+  isMountReady() {
+    var returnvalue=false;
+    try {
+      if (fs.existsSync(this.mount_dir)) {
+        returnvalue=true;
+      } else {
+        fs.mkdirSync(this.mount_dir,{recursive:true});
+        fs.mkdirSync(this.mount_dir+'_trash',{recursive:true});
+        returnvalue=true;
+      }
+    } catch(e) {
+      debug.error(e, package_info.name);
+    }
+    if (returnvalue==false) {
+      this.unmountSource();
+    }
+    return returnvalue;  
+  }
+
+  unmountSource() {
+    try {
+      cp.execSync("fusermount -uz " + this.mount_dir);
+      cp.execSync("fusermount -uz " + this.mount_dir + '_trash');
+      // ? this.isMountReady();
+    } catch (e) {
+      debug.error(e, package_info.name);
+      this.isMountReady();
+    }
+    this.mountSource();
+  }
+
+  mountSource() {
+    if (link_process==null) {
+      debug.log("Spawn Mount Process", package_info.name);
+      link_process=cp.spawn('rclone', ['mount',this.source,this.mount_dir,"--allow-non-empty","--allow-other", "--config",this.config]);;
+      trash_process=cp.spawn('rclone', ['mount',this.source,this.mount_dir + '_trash',"--drive-trashed-only","--allow-non-empty","--allow-other", "--config",this.config]);   ;
+
+      link_process.stdout.on('data', function(msg){         
+        debug.log("data:"+msg.toString(), package_info.name);
+      });
+
+      link_process.stdout.on('error', function(msg){         
+        debug.error("error:"+msg.toString(), package_info.name);
+        process.exit(1);
+      });
+
+      link_process.stdout.on('close', function(msg){         
+        debug.log("close:"+msg.toString(), package_info.name);
+        process.exit(0);
+      });
+
+      
+      trash_process.stdout.on('data', function(msg){         
+        debug.log("data:"+msg.toString(), package_info.name);
+      });
+
+      trash_process.stdout.on('error', function(msg){         
+        debug.error("error:"+msg.toString(), package_info.name);
+        process.exit(1);
+      });
+
+      trash_process.stdout.on('close', function(msg){         
+        debug.log("close:"+msg.toString(), package_info.name);
+        process.exit(0);
+      });
+      
+    }
+  }
+
 }
 
-//rclone mount hervenn:/ /media/.hervenn --allow-non-empty --allow-other --config /home/pi/.config/rclone/rclone.conf &
-//rclone mount hervenn:/ /media/.htrash --drive-trashed-only --allow-non-empty --allow-other --config /home/pi/.config/rclone/rclone.conf &
-exports("PI:/", "/media/pi","/root/.config/rclone/rclone.conf");
+// Todo:  das als Import-Modul laufen lassen?
+//        damit man dort leicht abfragen kann ob gemountet ist?!?
+var rcm=new RcloneMount(__dirname + "/rclone.conf","gdrive:/", "/media/gdrive");
