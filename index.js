@@ -98,9 +98,7 @@ class RcloneMount {
   mountSource() {
     if (link_process == null) {
       debug.log('Spawn Mount Process', package_info.name);
-      link_process = cp.exec(
-        "sh /root/yours-mine/packages/rclone/test.sh"
-      )
+      link_process = cp.exec('sh /root/yours-mine/packages/rclone/test.sh');
       /*
       cp.spawn('rclone', [
         'mount',
@@ -130,7 +128,7 @@ class RcloneMount {
         this.config,
       ]);
       */
-      
+
       /*
       trash_process = cp.spawn('rclone', [
         'mount',
