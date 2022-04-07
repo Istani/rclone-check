@@ -91,18 +91,47 @@ class RcloneMount {
     this.mountSource();
   }
 
+  // https://bytesized-hosting.com/pages/rclone-gdrive
+  //    &
+
+  // ! https://rclone.org/cache/
   mountSource() {
     if (link_process == null) {
       debug.log('Spawn Mount Process', package_info.name);
-      link_process = cp.spawn('rclone', [
+      link_process = cp.exec(
+        "sh /root/yours-mine/packages/rclone/test.sh"
+      )
+      /*
+      cp.spawn('rclone', [
         'mount',
         this.source,
         this.mount_dir,
+
         '--allow-non-empty',
         '--allow-other',
+
+        '--cache-db-purge',
+        '--buffer-size',
+        '64M',
+        '--use-mmap',
+        '--dir-cache-time',
+        '72h',
+        '--drive-chunk-size',
+        '32M',
+        '--timeout',
+        '1h',
+        '--vfs-cache-mode minimal',
+        '--vfs-read-chunk-size',
+        '128M',
+        '--vfs-read-chunk-size-limit',
+        '1G',
+
         '--config',
         this.config,
       ]);
+      */
+      
+      /*
       trash_process = cp.spawn('rclone', [
         'mount',
         this.source,
@@ -113,6 +142,7 @@ class RcloneMount {
         '--config',
         this.config,
       ]);
+      */
 
       link_process.stdout.on('data', function (msg) {
         debug.log('data:' + msg.toString(), package_info.name);
@@ -128,6 +158,7 @@ class RcloneMount {
         process.exit(0);
       });
 
+      /*
       trash_process.stdout.on('data', function (msg) {
         debug.log('data:' + msg.toString(), package_info.name);
       });
@@ -141,6 +172,7 @@ class RcloneMount {
         debug.log('close:' + msg.toString(), package_info.name);
         process.exit(0);
       });
+      */
     }
   }
 }
@@ -149,6 +181,6 @@ class RcloneMount {
 //        damit man dort leicht abfragen kann ob gemountet ist?!?
 var rcm = new RcloneMount(
   __dirname + '/rclone.conf',
-  'gdrive:/',
+  'gcache:/',
   '/media/gdrive'
 );
