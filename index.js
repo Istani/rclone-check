@@ -12,6 +12,7 @@ const cp = require('child_process');
 
 var link_process = null;
 var trash_process = null;
+var link2_process = null;
 
 class RcloneMount {
   constructor(config, source, mount_dir, check_file = '.checkfile') {
@@ -99,6 +100,7 @@ class RcloneMount {
     if (link_process == null) {
       debug.log('Spawn Mount Process', package_info.name);
       link_process = cp.exec('sh /root/yours-mine/packages/rclone/test.sh');
+      link2_process = cp.exec('sh /root/yours-mine/packages/rclone/test2.sh');
       /*
       cp.spawn('rclone', [
         'mount',
@@ -143,17 +145,31 @@ class RcloneMount {
       */
 
       link_process.stdout.on('data', function (msg) {
-        debug.log('data:' + msg.toString(), package_info.name);
+        debug.log('1data:' + msg.toString(), package_info.name);
       });
 
       link_process.stdout.on('error', function (msg) {
-        debug.error('error:' + msg.toString(), package_info.name);
+        debug.error('1error:' + msg.toString(), package_info.name);
         process.exit(1);
       });
 
       link_process.stdout.on('close', function (msg) {
-        debug.log('close:' + msg.toString(), package_info.name);
+        debug.log('1close:' + msg.toString(), package_info.name);
         process.exit(0);
+      });
+
+      link2_process.stdout.on('data', function (msg) {
+        debug.log('2data:' + msg.toString(), package_info.name);
+      });
+
+      link2_process.stdout.on('error', function (msg) {
+        debug.error('2error:' + msg.toString(), package_info.name);
+        process.exit(1);
+      });
+
+      link2_process.stdout.on('close', function (msg) {
+        debug.log('2close:' + msg.toString(), package_info.name);
+        //process.exit(0);
       });
 
       /*
