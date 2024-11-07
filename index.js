@@ -1,9 +1,9 @@
 process.chdir(__dirname);
 
 const package_info = require('./package.json');
-const debug = require('../debug');
+var debug = require("@istani/debug")(require('./package.json').name);
 
-debug.log('Imported', package_info.name);
+debug.log('Imported');
 
 const fs = require('fs');
 // Todo: Add Path Module
